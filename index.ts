@@ -81,44 +81,75 @@ function moveVertical(dy: number) {
 }
 
 function update() {
+  // 3.2 & 3.4 메서드 추출과 함수 명명
+  handleInputs();
+  updateMap();
+}
+
+function handleInputs() {
   while (inputs.length > 0) {
     let current = inputs.pop();
-    if (current === Input.LEFT)
-      moveHorizontal(-1);
-    else if (current === Input.RIGHT)
-      moveHorizontal(1);
-    else if (current === Input.UP)
-      moveVertical(-1);
-    else if (current === Input.DOWN)
-      moveVertical(1);
+    // MEMO: 이렇게 세부적으로 나눠야 하는지? 오히려 코드리뷰 시간이 더 걸리지는 않을지?
+    handleInput(current);
   }
+}
 
+function handleInput(current: Input) {
+  if (current === Input.LEFT)
+    moveHorizontal(-1);
+  else if (current === Input.RIGHT)
+    moveHorizontal(1);
+  else if (current === Input.UP)
+    moveVertical(-1);
+  else if (current === Input.DOWN)
+    moveVertical(1);
+}
+
+function updateMap() {
   for (let y = map.length - 1; y >= 0; y--) {
     for (let x = 0; x < map[y].length; x++) {
-      if ((map[y][x] === Tile.STONE || map[y][x] === Tile.FALLING_STONE)
-        && map[y + 1][x] === Tile.AIR) {
-        map[y + 1][x] = Tile.FALLING_STONE;
-        map[y][x] = Tile.AIR;
-      } else if ((map[y][x] === Tile.BOX || map[y][x] === Tile.FALLING_BOX)
-        && map[y + 1][x] === Tile.AIR) {
-        map[y + 1][x] = Tile.FALLING_BOX;
-        map[y][x] = Tile.AIR;
-      } else if (map[y][x] === Tile.FALLING_STONE) {
-        map[y][x] = Tile.STONE;
-      } else if (map[y][x] === Tile.FALLING_BOX) {
-        map[y][x] = Tile.BOX;
-      }
+      // 3.5 함수는 하나의 작업만 한다. if 문은 그 메서드가 하는 일 자체가 되어야 한다.
+      // 따라서, if ~ else로 정의된 내용을 모두 메서드 추출.
+      updateTile(x, y);
     }
   }
 }
 
-function draw() {
+function updateTile(x: number, y: number) {
+  if ((map[y][x] === Tile.STONE || map[y][x] === Tile.FALLING_STONE)
+    && map[y + 1][x] === Tile.AIR) {
+    map[y + 1][x] = Tile.FALLING_STONE;
+    map[y][x] = Tile.AIR;
+  } else if ((map[y][x] === Tile.BOX || map[y][x] === Tile.FALLING_BOX)
+    && map[y + 1][x] === Tile.AIR) {
+    map[y + 1][x] = Tile.FALLING_BOX;
+    map[y][x] = Tile.AIR;
+  } else if (map[y][x] === Tile.FALLING_STONE) {
+    map[y][x] = Tile.STONE;
+  } else if (map[y][x] === Tile.FALLING_BOX) {
+    map[y][x] = Tile.BOX;
+  }
+}
+
+function createGraphics() {
+  //TODO: 메서드로 사용하는 함수의 "GameCanvas" Id가 함수 내부에서 선언되었음.
   let canvas = document.getElementById("GameCanvas") as HTMLCanvasElement;
   let g = canvas.getContext("2d");
 
   g.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw map
+  return g
+}
+function draw() {
+  // 3.3 추상화 수준을 맞추기 위한 함수 분해
+  let g = createGraphics();
+
+  // 3.2 메서드 추출
+  drawMap(g);
+  drawPlayer(g);
+}
+
+function drawMap(g: CanvasRenderingContext2D) {
   for (let y = 0; y < map.length; y++) {
     for (let x = 0; x < map[y].length; x++) {
       if (map[y][x] === Tile.FLUX)
@@ -138,8 +169,9 @@ function draw() {
         g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
+}
 
-  // Draw player
+function drawPlayer(g: CanvasRenderingContext2D) {
   g.fillStyle = "#ff0000";
   g.fillRect(playerx * TILE_SIZE, playery * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 }
